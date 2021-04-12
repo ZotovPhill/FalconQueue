@@ -14,22 +14,19 @@ services:
   redis:
     image: redis:alpine
 
-#  rabbitmq:
-#    image: rabbitmq:latest
-#    ports:
-#      - 5672:5672
-#    restart: on-failure
-
   web:
     build:
       context: .
       dockerfile: ./system/01-python/Dockerfile
+    image: web
     command: bash -c "
-      gunicorn main:app -b 0.0.0.0:8000"
-#        --reload --chdir /usr/src/var/logs/gunicorn
-#        --log-level=info
-#        --log-file=./gunicorn.log
-#        --access-logfile=./gunicorn-access.log"
+      gunicorn main:app -b 0.0.0.0:8000
+        --reload --chdir /usr/src/var/logs/gunicorn
+        --log-level=info
+        --log-file=./gunicorn.log
+        --access-logfile=./gunicorn-access.log"
+    env_file:
+      - ./api/.env.dev
     ports:
       - 8000:8000
     depends_on:
@@ -40,21 +37,35 @@ services:
       - ./api:/usr/src/api
       - ./shared-files/logs/gunicorn:/usr/src/var/logs/gunicorn
 
-#  celery_worker:
-#    build:
-#      context: ..
-#      dockerfile: ./system/01-python/Dockerfile
-#    command:
-#      - /bin/sh
-#      - -c
-#      - |
-#        /usr/src/system/wait-for.sh rabbitmq:5672
-#        /usr/src/system/wait-for.sh web:8000 -- celery -A api worker -l info
-#    depends_on:
-#      - web
-#      - db
-#      - rabbitmq
-#      - redis
+  celery:
+    image: web
+    command: bash -c "
+      celery -A tasks worker
+        --loglevel=info
+        --logfile=/usr/src/var/logs/celery/celery.log"
+    env_file:
+      - ./api/.env.dev
+    depends_on:
+      - web
+      - redis
+    volumes:
+      - ./api:/usr/src/api
+      - ./shared-files/logs/celery:/usr/src/var/logs/celery
+
+  flower:
+    image: web
+    command: bash -c "
+      flower -A tasks
+        --port=5555
+        --broker=redis://redis:6379/0"
+    ports:
+      - 5555:5555
+    depends_on:
+      - web
+      - redis
+
+#  rabbitmq:
+#    image: rabbitmq:latest
+#    ports:
+#      - 5672:5672
 #    restart: on-failure
-#    volumes:
-#      - ../api:/usr/src/api
