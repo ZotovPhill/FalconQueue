@@ -1,6 +1,6 @@
 ### BUILDER ###
 
-FROM python:alpine as builder
+FROM python:3.8-alpine as builder
 
 # set work directory
 WORKDIR /usr/src/
@@ -28,7 +28,7 @@ RUN flake8 --ignore=E501,F401 ./api
 
 ### FINAL ###
 
-FROM python:alpine
+FROM python:3.8-alpine
 
 WORKDIR /usr/src/
 
