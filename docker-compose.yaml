@@ -40,7 +40,11 @@ services:
   celery:
     image: web
     command: bash -c "
-      celery -A tasks worker
+      watchmedo auto-restart
+        --directory=./
+        --pattern=*.py
+        --recursive
+        -- celery -A tasks worker
         --loglevel=info
         --logfile=/usr/src/var/logs/celery/celery.log"
     env_file:
